@@ -222,7 +222,7 @@ void resize(int w, int h)
     // Setting perspective transformation matrix
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    gluPerspective(30.0, (double)w / (double)h, 1.0, 100.0);
+    gluPerspective(45.0f, (GLfloat)w / (GLfloat)h, 0.1f, 100.0f);
 
     // Model view transformation matrix setting
     glMatrixMode(GL_MODELVIEW);
