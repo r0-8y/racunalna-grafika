@@ -21,8 +21,11 @@ float cameraAngleY = 0;
 float cameraDistance;
 bool dlUsed;
 
+vector<vector<GLdouble>> points;
+static int numPoints;
 vector<vector<GLdouble>> vertices;
 vector<vector<int>> faces;
+vector<vector<GLdouble>> spline;
 
 void loadOBJ(string filename, vector<vector<GLdouble>> &vertices, vector<vector<int>> &faces)
 {
@@ -64,10 +67,53 @@ void loadOBJ(string filename, vector<vector<GLdouble>> &vertices, vector<vector<
     in.close();
 }
 
-void idle()
+void loadCurve(string filename, vector<vector<GLdouble>> &points)
 {
-    glutPostRedisplay();
+    string line;
+    GLfloat x, y, z;
+
+    ifstream in(filename);
+
+    while (getline(in, line)) // read whole line
+    {
+        istringstream ss(line);      // put line into a stream for input
+        ss >> x >> y >> z;           // read from internal stream
+        points.push_back({x, y, z}); // add to vector
+    }
+
+    in.close();
+
+    numPoints = points.size();
+
+    vector<GLdouble> v0;
+    vector<GLdouble> v1;
+    vector<GLdouble> v2;
+    vector<GLdouble> v3;
+
+    for (int i = 0; i < numPoints - 3; i++)
+    {
+        v0 = points[i];
+        v1 = points[i + 1];
+        v2 = points[i + 2];
+        v3 = points[i + 3];
+
+        // Faktor t raste od 0 do 1
+        for (int t = 0; t < 100; t++)
+        {
+            double j = t / 100.0;
+            float f1 = (-pow(j, 3.0) + 3 * pow(j, 2.0) - 3 * j + 1) / 6.0;
+            float f2 = (3 * pow(j, 3.0) - 6 * pow(j, 2.0) + 4) / 6.0;
+            float f3 = (-3 * pow(j, 3.0) + 3 * pow(j, 2.0) + 3 * j + 1) / 6.0;
+            float f4 = pow(j, 3.0) / 6.0;
+
+            spline.push_back({f1 * v0[0] + f2 * v1[0] + f3 * v2[0] + f4 * v3[0],
+                              f1 * v0[1] + f2 * v1[1] + f3 * v2[1] + f4 * v3[1],
+                              f1 * v0[2] + f2 * v1[2] + f3 * v2[2] + f4 * v3[2]});
+        }
+    }
 }
+
+int t = 0;
 
 void display(void)
 {
@@ -78,17 +124,20 @@ void display(void)
     glLoadIdentity();
 
     /*Viewpoint position and line of sight direction */
-    gluLookAt(20.0, 20.0, 20.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
+    // gluLookAt(50.0, 50.0, 50.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0);
 
     /*Rotation of figure */
     // glRotated((double)r, 0.0, 1.0, 0.0);
 
     // insert from teapot
     //  tramsform camera ; this helps to activate the the mouseCB and mouseMotionCB :)
-    glTranslatef(0, 0, cameraDistance);
+    glTranslatef(-5.0, -5.0, -75.0);
     glRotatef(cameraAngleX, 1, 0, 0); // pitch
     glRotatef(cameraAngleY, 0, 1, 0); // heading
-                                      //
+
+    glPushMatrix();
+
+    glTranslatef(spline[t][0], spline[t][1], spline[t][2]);
 
     // Drawing figures
     glColor3d(0.0, 1.0, 0.0);
@@ -112,6 +161,53 @@ void display(void)
         }
     }
     glEnd();
+
+    glPopMatrix();
+
+    // Set the color
+    glColor3f(1.0, 0.0, 0.0);
+    // Set the point size
+    glPointSize(3.);
+
+    // Show the points
+    glBegin(GL_POINTS);
+    {
+        for (int i = 0; i < numPoints; i++)
+        {
+            glColor3f(0.0, 1.0, 0.0);
+            glVertex3dv(&points[i][0]);
+        }
+    }
+    glEnd();
+
+    glBegin(GL_LINE_STRIP);
+    for (auto sp : spline)
+    {
+        glColor3f(1.0, 0.0, 0.0);
+        glVertex3dv(&sp[0]);
+    }
+    glEnd();
+
+    // Connect the points (using a piecewise linear curve)
+    if (numPoints >= 2)
+    {
+        glColor3f(0.75, 0.75, 0.75);
+        glBegin(GL_LINE_STRIP);
+        {
+            for (int i = 0; i < numPoints; i++)
+            {
+                glVertex3dv(&points[i][0]);
+            }
+        }
+        glEnd();
+    }
+
+    // Force the rendering (off-screen)
+    t++;
+    if (t == spline.size())
+        t = 0;
+
+    glFlush();
 
     glutSwapBuffers();
 
@@ -197,16 +293,31 @@ bool initSharedMem()
     return true;
 }
 
+int currentTime = 0;
+int previousTime = 0;
+
+void idle()
+{
+    currentTime = glutGet(GLUT_ELAPSED_TIME);
+    int timeInterval = currentTime - previousTime;
+    if (timeInterval > 10)
+    {
+        display();
+        previousTime = currentTime;
+    }
+}
+
 int main(int argc, char *argv[])
 {
     loadOBJ("dodecahedron.obj", vertices, faces);
+    loadCurve("curve.txt", points);
 
     initSharedMem();
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH);
     glutInitWindowSize(700, 700);
     glutInitWindowPosition(50, 50);
-    glutCreateWindow(argv[0]);
+    glutCreateWindow("1. laboratorijska vjezba");
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
     glEnable(GL_DEPTH_TEST);
@@ -215,7 +326,8 @@ int main(int argc, char *argv[])
     glutKeyboardFunc(keyboard);
     glutMouseFunc(mouseCB);
     glutMotionFunc(mouseMotionCB);
-    glClearColor(1.0, 1.0, 1.0, 1.0);
+    glutIdleFunc(idle);
+    glClearColor(0.0, 0.0, 0.0, 0.0);
     glutMainLoop();
 
     return 0;
