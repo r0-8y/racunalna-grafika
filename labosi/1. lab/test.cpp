@@ -97,7 +97,6 @@ void loadCurve(string filename, vector<vector<GLdouble>> &points)
         v2 = points[i + 2];
         v3 = points[i + 3];
 
-        // Faktor t raste od 0 do 1
         for (int t = 0; t < 100; t++)
         {
             double j = t / 100.0;
@@ -117,23 +116,13 @@ int t = 0;
 
 void display(void)
 {
-    // static int r = 0; /*rotation angle */
-
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
     glLoadIdentity();
 
-    /*Viewpoint position and line of sight direction */
-    // gluLookAt(50.0, 50.0, 50.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0);
-
-    /*Rotation of figure */
-    // glRotated((double)r, 0.0, 1.0, 0.0);
-
-    // insert from teapot
-    //  tramsform camera ; this helps to activate the the mouseCB and mouseMotionCB :)
     glTranslatef(-5.0, -5.0, -75.0);
-    glRotatef(cameraAngleX, 1, 0, 0); // pitch
-    glRotatef(cameraAngleY, 0, 1, 0); // heading
+    glRotatef(cameraAngleX, 1, 0, 0);
+    glRotatef(cameraAngleY, 0, 1, 0);
 
     glPushMatrix();
 
@@ -207,12 +196,7 @@ void display(void)
     if (t == spline.size())
         t = 0;
 
-    glFlush();
-
     glutSwapBuffers();
-
-    /*Return the rotation angle to 0 when turning around */
-    // if (++r >= 360) r = 0;
 }
 
 void resize(int w, int h)
