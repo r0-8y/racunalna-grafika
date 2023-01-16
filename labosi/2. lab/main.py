@@ -92,7 +92,7 @@ class ParticleSystem:
         self.program = program
         self.current_time = 0
         self.past_time = 0
-        self.source = source
+        self.sources = source
         self.particles: List[Particle] = []
         self.viewing_angle = viewing_angle
         self.iteration = 0
@@ -164,7 +164,7 @@ def load_texture(filename):
 class Program:
     def __init__(self):
         self.viewing_angle = Vertex(0, 0, 50)
-        self.source = Source(Vertex(0, 0, 0), (1, 0, 0), 1)
+        self.sources = Source(Vertex(0, 0, 0), (1, 0, 0), 1),
         self.particle_system = ParticleSystem(self, self.source, self.viewing_angle)
 
     def my_display(self):
@@ -199,7 +199,7 @@ class Program:
         glutReshapeFunc(self.my_reshape)
         glutDisplayFunc(self.my_display)
         glutIdleFunc(self.particle_system.update)
-        self.texture = load_texture("particle.bmp")
+        self.texture = load_texture("snow.bmp")
         glBlendFunc(GL_SRC_ALPHA, GL_ONE)
         glEnable(GL_BLEND)
         glEnable(GL_TEXTURE_2D)
